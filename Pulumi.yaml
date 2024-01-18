@@ -1,0 +1,3 @@
+name: learning-pulumi
+runtime: nodejs
+description: Learning pulumi for aws infrastructure with Typescript
