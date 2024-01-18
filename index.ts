@@ -19,8 +19,6 @@ interface yourDetails {
 }
 
 
-
-
 // define objects from config file
 const vpc = config.requireObject<vpc>("vpc")
 
@@ -38,6 +36,34 @@ const main = new aws.ec2.Vpc("main-vpc", {
 })
 
 
+// create pub subs
+const pub_subs = vpc.pub_sub_cidrs.map((subnet, index) => {
+    return new aws.ec2.Subnet(`pub_sub${index + 1}`, {
+        cidrBlock: vpc.pub_sub_cidrs[index],
+        vpcId: main.id,
+        availabilityZone: vpc.azs[index],
+        mapPublicIpOnLaunch:true,
+        tags: {
+            Name: `${pulumi.getProject()}-pub-sub${index + 1}`,
+            ManagedBy: "Pulumi"
+        }
+    })
+})
+
+// create priv subs
+const priv_subs = vpc.priv_sub_cidrs.map((subnet, index) => {
+    return new aws.ec2.Subnet(`priv_sub${index + 1}`, {
+        cidrBlock: vpc.priv_sub_cidrs[index],
+        vpcId: main.id,
+        availabilityZone: vpc.azs[index],
+        mapPublicIpOnLaunch: false,
+        tags: {
+            Name: `${pulumi.getProject()}-priv-sub${index + 1}`,
+            ManagedBy: "Pulumi"
+        }
+    })
+})
+
 
 // exports:
-export const vpc_export = main
+export const vpc_export = main 
