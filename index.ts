@@ -50,6 +50,7 @@ const pub_subs = vpc.pub_sub_cidrs.map((subnet, index) => {
     })
 })
 
+
 // create priv subs
 const priv_subs = vpc.priv_sub_cidrs.map((subnet, index) => {
     return new aws.ec2.Subnet(`priv_sub${index + 1}`, {
@@ -61,6 +62,39 @@ const priv_subs = vpc.priv_sub_cidrs.map((subnet, index) => {
             Name: `${pulumi.getProject()}-priv-sub${index + 1}`,
             ManagedBy: "Pulumi"
         }
+    })
+})
+
+
+// create ig
+const ig = new aws.ec2.InternetGateway("main-ig", {
+    vpcId: main.id,
+    tags: {
+        Name: `${pulumi.getProject()}-ig`,
+        ManagedBy: "Pulumi"
+    }
+})
+
+
+// create rt
+const pub_rt = new aws.ec2.RouteTable("pub_rt", {
+    vpcId: main.id,
+    routes: [
+        {
+            cidrBlock: "0.0.0.0/0",
+            gatewayId: ig.id,
+        }],
+    tags: {
+        Name: `${pulumi.getProject()}-rt`,
+        ManagedBy: "Pulumi"
+    }
+});
+
+// rt associations
+const rt_associate = pub_subs.map((subnet, index) => {
+    return new aws.ec2.RouteTableAssociation(`rt_associate-${index+1}`, {
+        subnetId: subnet.id,
+        routeTableId: pub_rt.id
     })
 })
 
