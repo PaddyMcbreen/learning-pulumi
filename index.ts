@@ -76,7 +76,7 @@ const ig = new aws.ec2.InternetGateway("main-ig", {
 })
 
 
-// create rt
+// create public rt
 const pub_rt = new aws.ec2.RouteTable("pub_rt", {
     vpcId: main.id,
     routes: [
@@ -85,18 +85,63 @@ const pub_rt = new aws.ec2.RouteTable("pub_rt", {
             gatewayId: ig.id,
         }],
     tags: {
-        Name: `${pulumi.getProject()}-rt`,
+        Name: `${pulumi.getProject()}-pub-rt`,
         ManagedBy: "Pulumi"
     }
 });
 
-// rt associations
-const rt_associate = pub_subs.map((subnet, index) => {
-    return new aws.ec2.RouteTableAssociation(`rt_associate-${index+1}`, {
+
+// public rt associations
+const rt_associate_pub = pub_subs.map((subnet, index) => {
+    return new aws.ec2.RouteTableAssociation(`rt_associate_pub-${index + 1}`, {
         subnetId: subnet.id,
         routeTableId: pub_rt.id
     })
 })
+
+
+// create elastic IP
+let natGwEip = new aws.ec2.Eip ("natgw-eip", {
+    vpc: true
+})
+
+
+// create natgateway
+const ngw = new aws.ec2.NatGateway("main-ngw", {
+    allocationId: natGwEip.id,
+    subnetId: priv_subs[0].id,
+
+    tags: {
+        Name: `${pulumi.getProject()}-ngw`,
+        ManagedBy: "Pulumi"
+    }
+})
+
+
+// create priv rt
+const priv_rt = new aws.ec2.RouteTable("priv_rt", {
+    vpcId: main.id,
+    routes: [
+        {
+            cidrBlock: "0.0.0.0/0",
+            natGatewayId: ngw.id,
+        }],
+    tags: {
+        Name: `${pulumi.getProject()}-priv-rt`,
+        ManagedBy: "Pulumi"
+    }
+});
+
+
+// rt associations
+const rt_associate_priv = priv_subs.map((subnet, index) => {
+    return new aws.ec2.RouteTableAssociation(`rt_associate_priv-${index + 1}`, {
+        subnetId: subnet.id,
+        routeTableId: priv_rt.id
+    })
+})
+
+
 
 
 // exports:
